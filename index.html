@@ -254,13 +254,19 @@ async function fetchLiveScores(lb=false){
     if(!used.size)return alert('No participants yet.');
     const btn=document.getElementById('fetchBtn'),spin=document.getElementById('fetchSpin'),upd=document.getElementById('lastUpd');
     if(btn)btn.disabled=true;if(spin)spin.style.display='inline';
-    const prompt=`Look up CURRENT live leaderboard scores for the 2026 AT&T Pebble Beach Pro-Am (Feb 12-15 2026). For each player return their cumulative score to par as an integer. If unavailable return 0. Players: ${Array.from(used).join(', ')}. Respond ONLY with valid JSON, no markdown. Example: {"Scottie Scheffler":-8,"Rory McIlroy":-5}`;
+    const playerList=Array.from(used).join(', ');
     try{
-        // Call our Vercel proxy instead of Anthropic directly — fixes CORS
-        const res=await fetch('/api/scores',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5-20250929',max_tokens:1000,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
-        const data=await res.json();
-        const txt=(data.content?.find(b=>b.type==='text')?.text||'').replace(/```json|```/g,'').trim();
-        const scores=JSON.parse(txt);
+        // Step 1: search for scores
+        const searchRes=await fetch('/api/scores',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5-20250929',max_tokens:2000,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:`Search for the current live leaderboard scores for the 2026 AT&T Pebble Beach Pro-Am tournament. Find the scores for these players: ${playerList}`}]})});
+        const searchData=await searchRes.json();
+        // Step 2: extract scores as pure JSON using the search results as context
+        const searchText=(searchData.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+        const jsonRes=await fetch('/api/scores',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5-20250929',max_tokens:1000,system:'You are a JSON API. You must respond with ONLY a valid JSON object and nothing else. No explanation, no markdown, no text before or after the JSON.',messages:[{role:'user',content:`Based on this golf leaderboard information: ${searchText}\n\nReturn ONLY a JSON object mapping these exact player names to their current score relative to par as integers. Use 0 if score unavailable. Players: ${playerList}\n\nExample format: {"Scottie Scheffler":-8,"Rory McIlroy":-5}\n\nJSON only, nothing else:`}]})});
+        const data=await jsonRes.json();
+        const allText=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+        const jsonMatch=allText.match(/\{[\s\S]*\}/);
+        if(!jsonMatch) throw new Error('No JSON: '+allText.substring(0,200));
+        const scores=JSON.parse(jsonMatch[0]);
         let n=0;for(const[name,score]of Object.entries(scores)){if(used.has(name)&&typeof score==='number'){golferScores[name]=score;n++;}}
         await saveData();
         const now=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
