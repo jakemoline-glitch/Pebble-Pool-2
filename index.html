@@ -337,8 +337,8 @@ async function showTab(name,el){
     el.classList.add('active');document.getElementById(name).classList.add('active');
     await loadData();
     if(name==='all-picks')renderAllPicks();
-    if(name==='scores'){renderScores();if(visible()&&document.getElementById('lastUpd').textContent==='Not yet fetched')fetchLiveScores(false);}
-    if(name==='leaderboard'){renderLeaderboard();const l=document.getElementById('lbUpd');if(visible()&&l&&!l.textContent)fetchLiveScores(true);}
+    if(name==='scores')renderScores();
+    if(name==='leaderboard')renderLeaderboard();
 }
 
 async function init(){document.getElementById('ov').style.display='flex';await loadData();document.getElementById('ov').style.display='none';buildGrid();}
