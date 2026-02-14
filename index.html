@@ -191,8 +191,13 @@ async function sbSet(k,v){
 }
 
 let participants=[],golferScores={};
+let lastLoadTime=0;
+let lastFetchTime=0;
 
-async function loadData(){
+async function loadData(force=false){
+    const now=Date.now();
+    if(!force && now-lastLoadTime < 10000) return; // skip if loaded within 10 seconds
+    lastLoadTime=now;
     try{const d=await sbGet('pebblePool2026');participants=d?.participants||[];golferScores=d?.golferScores||{};}
     catch(e){console.error(e);participants=[];golferScores={};}
 }
@@ -285,6 +290,9 @@ async function removeP(i){
 
 let arTimer=null;
 async function fetchLiveScores(lb=false){
+    const now=Date.now();
+    if(now-lastFetchTime < 30000){console.log('Score fetch throttled');return;}
+    lastFetchTime=now;
     const used=new Set();participants.forEach(p=>Object.values(p.picks).forEach(g=>used.add(g)));
     if(!used.size)return alert('No participants yet.');
     const btn=document.getElementById('fetchBtn'),spin=document.getElementById('fetchSpin'),upd=document.getElementById('lastUpd');
