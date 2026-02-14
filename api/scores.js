@@ -5,41 +5,26 @@ export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
 
     try {
-        // Fetch live leaderboard from ESPN's public golf API
         const espnRes = await fetch(
             'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard',
             { headers: { 'User-Agent': 'Mozilla/5.0' } }
         );
         const espnData = await espnRes.json();
-
-        // Extract player scores from ESPN response
-        const scores = {};
         const events = espnData?.events || [];
+        const comp = events[0]?.competitions?.[0];
+        const sample = comp?.competitors?.[0];
 
-        for (const event of events) {
-            const competitions = event?.competitions || [];
-            for (const comp of competitions) {
-                const competitors = comp?.competitors || [];
-                for (const player of competitors) {
-                    const name = player?.athlete?.displayName;
-                    const scoreStr = player?.score?.displayValue;
-                    if (!name) continue;
-
-                    let score = 0;
-                    if (scoreStr === 'E' || scoreStr === 'EVEN' || !scoreStr) {
-                        score = 0;
-                    } else {
-                        const parsed = parseInt(scoreStr.replace('+', ''));
-                        score = isNaN(parsed) ? 0 : parsed;
-                    }
-                    scores[name] = score;
-                }
-            }
-        }
-
-        res.status(200).json({ scores, event: events[0]?.name || 'PGA Tour' });
+        // Return raw sample so we can see the structure
+        res.status(200).json({ 
+            eventName: events[0]?.name,
+            samplePlayerName: sample?.athlete?.displayName,
+            sampleScore: sample?.score,
+            sampleStatus: sample?.status,
+            sampleLinescores: sample?.linescores,
+            sampleStatistics: sample?.statistics,
+            sampleKeys: sample ? Object.keys(sample) : []
+        });
     } catch (err) {
-        console.error('ESPN fetch error:', err);
         res.status(500).json({ error: err.message });
     }
 }
