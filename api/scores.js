@@ -11,19 +11,26 @@ export default async function handler(req, res) {
         );
         const espnData = await espnRes.json();
         const events = espnData?.events || [];
-        const comp = events[0]?.competitions?.[0];
-        const sample = comp?.competitors?.[0];
+        const scores = {};
 
-        // Return raw sample so we can see the structure
-        res.status(200).json({ 
-            eventName: events[0]?.name,
-            samplePlayerName: sample?.athlete?.displayName,
-            sampleScore: sample?.score,
-            sampleStatus: sample?.status,
-            sampleLinescores: sample?.linescores,
-            sampleStatistics: sample?.statistics,
-            sampleKeys: sample ? Object.keys(sample) : []
-        });
+        for (const event of events) {
+            for (const comp of event?.competitions || []) {
+                for (const player of comp?.competitors || []) {
+                    const name = player?.athlete?.displayName;
+                    if (!name) continue;
+                    // score is a string like "-15", "+3", "0", "E"
+                    const scoreStr = player?.score;
+                    let score = 0;
+                    if (scoreStr && scoreStr !== 'E' && scoreStr !== 'EVEN') {
+                        const parsed = parseInt(scoreStr.replace('+', ''));
+                        score = isNaN(parsed) ? 0 : parsed;
+                    }
+                    scores[name] = score;
+                }
+            }
+        }
+
+        res.status(200).json({ scores, eventName: events[0]?.name || 'No event' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
