@@ -112,9 +112,9 @@
     <div id="all-picks" class="tc"><h2>All Participants</h2><div id="apList"></div></div>
 
     <div id="scores" class="tc">
-        <h2>Update Golfer Scores</h2>
-        <div class="info">Scores are fetched live automatically. Hit <strong>Fetch Live Scores</strong> to refresh now, or update any score manually.</div>
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+        <h2>Golfer Scores</h2>
+        <div id="scoresAdminNote"></div>
+        <div id="fetchControls" style="display:none;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
             <button class="btn" onclick="fetchLiveScores(false)" id="fetchBtn" style="padding:10px 20px;font-size:13px">⚡ Fetch Live Scores Now</button>
             <span id="lastUpd" style="font-size:12px;color:rgba(255,255,255,.4)">Not yet fetched</span>
             <span id="fetchSpin" style="display:none;font-size:13px;color:var(--gold)">⏳ Fetching…</span>
@@ -329,15 +329,20 @@ function renderScores(){
     // Show/hide admin controls
     const fetchBtn=document.getElementById('fetchBtn');
     const note=document.getElementById('scoresAdminNote');
-    if(fetchBtn) fetchBtn.style.display=isAdmin?'inline-block':'none';
-    if(note) note.innerHTML=isAdmin?'':'<div class="info" style="margin-bottom:20px">🔒 Score editing is restricted to the pool admin. Scores update automatically via ESPN.</div>';
+    const fetchControls=document.getElementById('fetchControls');
+    if(fetchControls) fetchControls.style.display=isAdmin?'flex':'none';
+    if(note) note.innerHTML='';
     const c=document.getElementById('gScores');
     const used=new Set();participants.forEach(p=>Object.values(p.picks).forEach(g=>used.add(g)));
     if(!used.size){c.innerHTML='<div class="es">No golfers yet.</div>';return;}
     c.innerHTML=Array.from(used).sort().map(g=>{
         const id='s_'+g.replace(/[^a-zA-Z0-9]/g,'_'),cur=golferScores[g]??0;
         const cls=cur===0?'se':cur<0?'su':'so';
-        return `<div class="gcard"><div class="gn">${g}</div><input type="text" class="sf" id="${id}" value="${fmt(cur)}" placeholder="E">${isAdmin ? `<button class="bupd" onclick="updScore('${g}','${id}')">Save</button>` : ''}<div class="sd ${cls}">${fmt(cur)}</div></div>`;
+        if(!isAdmin){
+            // Read-only view for non-admins
+            return `<div class="gcard"><div class="gn">${g}</div><div class="sd ${cls}" style="margin-left:auto;font-size:16px">${fmt(cur)}</div></div>`;
+        }
+        return `<div class="gcard"><div class="gn">${g}</div><input type="text" class="sf" id="${id}" value="${fmt(cur)}" placeholder="E"><button class="bupd" onclick="updScore('${g}','${id}')">Save</button><div class="sd ${cls}">${fmt(cur)}</div></div>`;
     }).join('');
 }
 
@@ -418,6 +423,9 @@ function updateAdminUI(){
     // Show/hide leaderboard refresh button
     const lbBtn = document.getElementById('lbFetchBtn');
     if(lbBtn) lbBtn.style.display = isAdmin ? 'inline-block' : 'none';
+    // Show/hide scores fetch controls
+    const fetchControls = document.getElementById('fetchControls');
+    if(fetchControls) fetchControls.style.display = isAdmin ? 'flex' : 'none';
 }
 async function refreshData(){document.getElementById('ov').style.display='flex';await loadData();document.getElementById('ov').style.display='none';const a=document.querySelector('.tc.active');if(a?.id==='all-picks')renderAllPicks();if(a?.id==='scores')renderScores();if(a?.id==='leaderboard')renderLeaderboard();}
 
