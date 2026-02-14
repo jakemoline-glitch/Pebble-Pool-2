@@ -167,6 +167,8 @@ function checkAdmin() {
     if (pw === atob('VGl0bGVpc3Rnb2xmODghIQ==')) {
         isAdmin = true;
         alert('✅ Admin mode enabled!');
+        updateEntryTab();
+        buildGrid();
         // Re-render current tab
         const a = document.querySelector('.tc.active');
         if (a?.id === 'all-picks') renderAllPicks();
@@ -389,7 +391,28 @@ async function showTab(name,el){
     if(name==='leaderboard')renderLeaderboard();
 }
 
-async function init(){document.getElementById('ov').style.display='flex';await loadData();document.getElementById('ov').style.display='none';buildGrid();}
+async function init(){
+    document.getElementById('ov').style.display='flex';
+    await loadData();
+    document.getElementById('ov').style.display='none';
+    buildGrid();
+    // Lock entry tab for non-admins after tournament starts
+    updateEntryTab();
+}
+
+function updateEntryTab(){
+    const entryTab = document.querySelector('.tab[onclick*="entry"]');
+    const entryPanel = document.getElementById('entry');
+    if(visible() && !isAdmin){
+        // Show locked message instead of form
+        entryPanel.innerHTML = `<div style="text-align:center;padding:60px 20px">
+            <div style="font-size:3rem;margin-bottom:16px">🔒</div>
+            <h2 style="margin-bottom:12px">Entries Closed</h2>
+            <p style="color:rgba(255,255,255,.5);font-size:15px">The tournament has started — no new picks are being accepted.</p>
+            ${!isAdmin ? '<p style="margin-top:20px;font-size:13px;color:rgba(255,255,255,.3)">Pool admin can <button onclick="checkAdmin()" style="background:none;border:none;color:var(--sand);font-size:13px;cursor:pointer;text-decoration:underline;padding:0">log in</button> to add entries.</p>' : ''}
+        </div>`;
+    }
+}
 async function refreshData(){document.getElementById('ov').style.display='flex';await loadData();document.getElementById('ov').style.display='none';const a=document.querySelector('.tc.active');if(a?.id==='all-picks')renderAllPicks();if(a?.id==='scores')renderScores();if(a?.id==='leaderboard')renderLeaderboard();}
 
 init();
