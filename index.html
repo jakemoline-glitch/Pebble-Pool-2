@@ -126,7 +126,7 @@
         <h2>Leaderboard</h2>
         <div class="info">Ranked by best 6-of-9 scores. <strong style="color:#9ff5b4">Green</strong> = counted. <span style="color:rgba(255,255,255,.35)">Struck-through</span> = dropped.</div>
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-            <button class="btn" onclick="fetchLiveScores(true)" style="padding:10px 20px;font-size:13px">⚡ Refresh Live Scores</button>
+            <button class="btn" onclick="fetchLiveScores(true)" id="lbFetchBtn" style="padding:10px 20px;font-size:13px">⚡ Refresh Live Scores</button>
             <span id="lbUpd" style="font-size:12px;color:rgba(255,255,255,.4)"></span>
         </div>
         <table><thead><tr><th>Rank</th><th>Participant</th><th>Best 6 Total</th><th>Predicted Winner</th><th>Golfers</th></tr></thead><tbody id="lbBody"></tbody></table>
@@ -169,6 +169,7 @@ function checkAdmin() {
         alert('✅ Admin mode enabled!');
         updateEntryTab();
         buildGrid();
+        updateAdminUI();
         // Re-render current tab
         const a = document.querySelector('.tc.active');
         if (a?.id === 'all-picks') renderAllPicks();
@@ -398,20 +399,25 @@ async function init(){
     buildGrid();
     // Lock entry tab for non-admins after tournament starts
     updateEntryTab();
+    updateAdminUI();
 }
 
 function updateEntryTab(){
-    const entryTab = document.querySelector('.tab[onclick*="entry"]');
     const entryPanel = document.getElementById('entry');
     if(visible() && !isAdmin){
-        // Show locked message instead of form
         entryPanel.innerHTML = `<div style="text-align:center;padding:60px 20px">
             <div style="font-size:3rem;margin-bottom:16px">🔒</div>
             <h2 style="margin-bottom:12px">Entries Closed</h2>
             <p style="color:rgba(255,255,255,.5);font-size:15px">The tournament has started — no new picks are being accepted.</p>
-            ${!isAdmin ? '<p style="margin-top:20px;font-size:13px;color:rgba(255,255,255,.3)">Pool admin can <button onclick="checkAdmin()" style="background:none;border:none;color:var(--sand);font-size:13px;cursor:pointer;text-decoration:underline;padding:0">log in</button> to add entries.</p>' : ''}
+            <p style="margin-top:20px;font-size:13px;color:rgba(255,255,255,.3)">Pool admin can <button onclick="checkAdmin()" style="background:none;border:none;color:var(--sand);font-size:13px;cursor:pointer;text-decoration:underline;padding:0">log in</button> to add entries.</p>
         </div>`;
     }
+}
+
+function updateAdminUI(){
+    // Show/hide leaderboard refresh button
+    const lbBtn = document.getElementById('lbFetchBtn');
+    if(lbBtn) lbBtn.style.display = isAdmin ? 'inline-block' : 'none';
 }
 async function refreshData(){document.getElementById('ov').style.display='flex';await loadData();document.getElementById('ov').style.display='none';const a=document.querySelector('.tc.active');if(a?.id==='all-picks')renderAllPicks();if(a?.id==='scores')renderScores();if(a?.id==='leaderboard')renderLeaderboard();}
 
